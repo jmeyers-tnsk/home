@@ -303,21 +303,9 @@ class User:
         if not connected:
             handle = "connecting..."
 
-        w, _ = screen.measure_text(handle)
-        screen.brush = white
-        screen.text(handle, 80 - (w / 2), 2)
-
-        # draw name
-        screen.font = small_font
-        screen.brush = phosphor
-        name = placeholder_if_none(self.name)
-        w, _ = screen.measure_text(name)
-        screen.text(name, 80 - (w / 2), 16)
-
-        # draw only commits statistic (centered)
-        self.draw_stat("commits", self.contribs, 80 - 15, 30)
-
-        # draw avatar image
+        # draw avatar image at the top left
+        avatar_x = 5
+        avatar_y = 5
         if not self.avatar:
             # create a spinning loading animation while we wait for the avatar to load
             screen.brush = phosphor
@@ -325,11 +313,27 @@ class User:
             screen.brush = brushes.color(211, 250, 55, 50)
             for i in range(4):
                 mul = math.sin(io.ticks / 1000) * 14000
-                squircle.transform = Matrix().translate(42, 54).rotate(
+                squircle.transform = Matrix().translate(avatar_x + 37, avatar_y + 37).rotate(
                     (io.ticks + i * mul) / 40).scale(1 + i / 1.3)
                 screen.draw(squircle)
         else:
-            screen.blit(self.avatar, 5, 20)
+            screen.blit(self.avatar, avatar_x, avatar_y)
+
+        # draw handle to the right of the avatar
+        screen.font = large_font
+        screen.brush = white
+        handle_x = avatar_x + 80  # Position to the right of the avatar (75px wide)
+        handle_y = 10
+        screen.text(handle, handle_x, handle_y)
+
+        # draw name below handle
+        screen.font = small_font
+        screen.brush = phosphor
+        name = placeholder_if_none(self.name)
+        screen.text(name, handle_x, handle_y + 14)
+
+        # draw commits statistic below the avatar area
+        self.draw_stat("commits", self.contribs, 80 - 15, 50)
 
 
 user = User()
