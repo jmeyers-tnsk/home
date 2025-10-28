@@ -248,13 +248,13 @@ class User:
         screen.text(title, x - 1, y + 13)
 
     def draw(self, connected):
-        # draw contribution graph at the bottom
-        size = 10  # Smaller size to fit 2 weeks nicely
+        # draw contribution graph at the bottom - horizontal layout
+        size = 8  # Smaller size to fit days horizontally
         weeks = 2  # Show 2 weeks
         days_per_week = 7
-        # Calculate heatmap dimensions (weeks as columns, days as rows)
-        graph_width = weeks * (size + 2)
-        graph_height = days_per_week * (size + 2)
+        # Calculate heatmap dimensions (days as columns, weeks as rows)
+        graph_width = days_per_week * (size + 2)
+        graph_height = weeks * (size + 2)
         # Center the heatmap horizontally
         x_offset = (160 - graph_width) // 2
         # Position at bottom of screen
@@ -262,14 +262,16 @@ class User:
 
         screen.font = small_font
         rect = shapes.rounded_rectangle(0, 0, size, size, 2)
-        for day in range(days_per_week):
-            for week in range(weeks):
-                if self.contribution_data and week < len(self.contribution_data[0]):
+        for week in range(weeks):
+            for day in range(days_per_week):
+                if (self.contribution_data and 
+                    day < len(self.contribution_data) and 
+                    week < len(self.contribution_data[0])):
                     level = self.contribution_data[day][week]
                     screen.brush = User.levels[level]
                 else:
                     screen.brush = User.levels[0]
-                pos = (x_offset + week * (size + 2), y_offset + day * (size + 2))
+                pos = (x_offset + day * (size + 2), y_offset + week * (size + 2))
                 rect.transform = Matrix().translate(*pos)
                 screen.draw(rect)
 
@@ -303,21 +305,12 @@ class User:
         if not connected:
             handle = "connecting..."
 
-        w, _ = screen.measure_text(handle)
-        screen.brush = white
-        screen.text(handle, 80 - (w / 2), 2)
-
-        # draw name
-        screen.font = small_font
-        screen.brush = phosphor
-        name = placeholder_if_none(self.name)
-        w, _ = screen.measure_text(name)
-        screen.text(name, 80 - (w / 2), 16)
-
-        # draw only commits statistic (centered)
-        self.draw_stat("commits", self.contribs, 80 - 15, 30)
-
-        # draw avatar image
+        # draw avatar image at the top left
+        avatar_x = 5
+        avatar_y = 5
+        avatar_size = 75  # Avatar image is 75x75 pixels
+        avatar_center = avatar_size // 2  # Center point for loading animation
+        
         if not self.avatar:
             # create a spinning loading animation while we wait for the avatar to load
             screen.brush = phosphor
@@ -325,11 +318,28 @@ class User:
             screen.brush = brushes.color(211, 250, 55, 50)
             for i in range(4):
                 mul = math.sin(io.ticks / 1000) * 14000
-                squircle.transform = Matrix().translate(42, 54).rotate(
-                    (io.ticks + i * mul) / 40).scale(1 + i / 1.3)
+                squircle.transform = Matrix().translate(
+                    avatar_x + avatar_center, avatar_y + avatar_center
+                ).rotate((io.ticks + i * mul) / 40).scale(1 + i / 1.3)
                 screen.draw(squircle)
         else:
-            screen.blit(self.avatar, 5, 20)
+            screen.blit(self.avatar, avatar_x, avatar_y)
+
+        # draw handle to the right of the avatar
+        screen.font = large_font
+        screen.brush = white
+        handle_x = avatar_x + avatar_size + 5  # Position to the right of avatar with 5px margin
+        handle_y = 10
+        screen.text(handle, handle_x, handle_y)
+
+        # draw name below handle
+        screen.font = small_font
+        screen.brush = phosphor
+        name = placeholder_if_none(self.name)
+        screen.text(name, handle_x, handle_y + 14)
+
+        # draw commits statistic below the avatar area
+        self.draw_stat("commits", self.contribs, 80 - 15, 50)
 
 
 user = User()
