@@ -248,13 +248,13 @@ class User:
         screen.text(title, x - 1, y + 13)
 
     def draw(self, connected):
-        # draw contribution graph at the bottom
-        size = 10  # Smaller size to fit 2 weeks nicely
+        # draw contribution graph at the bottom - horizontal layout
+        size = 8  # Smaller size to fit 14 days horizontally
         weeks = 2  # Show 2 weeks
         days_per_week = 7
-        # Calculate heatmap dimensions (weeks as columns, days as rows)
-        graph_width = weeks * (size + 2)
-        graph_height = days_per_week * (size + 2)
+        # Calculate heatmap dimensions (days as columns, weeks as rows)
+        graph_width = days_per_week * (size + 2)
+        graph_height = weeks * (size + 2)
         # Center the heatmap horizontally
         x_offset = (160 - graph_width) // 2
         # Position at bottom of screen
@@ -262,14 +262,14 @@ class User:
 
         screen.font = small_font
         rect = shapes.rounded_rectangle(0, 0, size, size, 2)
-        for day in range(days_per_week):
-            for week in range(weeks):
+        for week in range(weeks):
+            for day in range(days_per_week):
                 if self.contribution_data and week < len(self.contribution_data[0]):
                     level = self.contribution_data[day][week]
                     screen.brush = User.levels[level]
                 else:
                     screen.brush = User.levels[0]
-                pos = (x_offset + week * (size + 2), y_offset + day * (size + 2))
+                pos = (x_offset + day * (size + 2), y_offset + week * (size + 2))
                 rect.transform = Matrix().translate(*pos)
                 screen.draw(rect)
 
