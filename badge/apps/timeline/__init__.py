@@ -461,7 +461,7 @@ def connection_error():
 def update():
     global connected, force_update, scroll_offset, scroll_direction, last_input_time, auto_scroll_enabled
 
-    screen.brush = brushes.color(138, 190, 255)
+    screen.brush = brushes.color(20, 20, 20)
     screen.draw(shapes.rectangle(0, 0, 160, 120))
 
     force_update = False
