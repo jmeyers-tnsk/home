@@ -204,21 +204,11 @@ def get_contrib_data(user, force_update=False):
             except (IndexError, KeyError):
                 pass
     
-    # Extract start and end dates
+    # Extract start and end dates from top-level fields
     try:
-        # First day of first week
-        user.start_date = weeks[0]["contribution_days"][0]["date"]
-        # Last day of last week (or current week)
-        last_week = weeks[-1]
-        # Find the last valid day in the last week
-        user.end_date = None
-        for day in range(6, -1, -1):
-            if day < len(last_week["contribution_days"]):
-                user.end_date = last_week["contribution_days"][day]["date"]
-                break
-        if user.end_date is None:
-            user.end_date = last_week["contribution_days"][0]["date"]
-    except (IndexError, KeyError):
+        user.start_date = r.get("from")
+        user.end_date = r.get("to")
+    except (KeyError, AttributeError):
         user.start_date = None
         user.end_date = None
     
