@@ -4,6 +4,14 @@ import os
 sys.path.insert(0, "/system/apps/timeline")
 os.chdir("/system/apps/timeline")
 
+"""
+Timeline App - GitHub Contribution Viewer
+
+Controls:
+- A: Scroll left through contributions
+- C: Scroll right through contributions  
+- B: Refresh GitHub data (re-fetch from API)
+"""
 
 from badgeware import io, brushes, shapes, Image, run, PixelFont, screen, Matrix, file_exists
 import random
@@ -21,6 +29,8 @@ faded = brushes.color(235, 245, 255, 100)
 small_font = PixelFont.load("/system/assets/fonts/ark.ppf")
 large_font = PixelFont.load("/system/assets/fonts/absolute.ppf")
 
+MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 WIFI_TIMEOUT = 60
 CONTRIB_URL = "https://github.com/{user}.contribs"
 USER_AVATAR = "https://wsrv.nl/?url=https://github.com/{user}.png&w=40&output=png"
@@ -242,10 +252,10 @@ def placeholder_if_none(text):
 class User:
     levels = [
         brushes.color(21 / 2,  27 / 2,  35 / 2),
-        brushes.color(3 / 2,  58 / 2,  22 / 2),
-        brushes.color(25 / 2, 108 / 2,  46 / 2),
-        brushes.color(46 / 2, 160 / 2,  67 / 2),
-        brushes.color(86 / 2, 211 / 2, 100 / 2),
+        brushes.color(25 / 2, 108 / 2,  46 / 2),  # Increased from level 1 (was 3/2, 58/2, 22/2)
+        brushes.color(46 / 2, 160 / 2,  67 / 2),  # Increased from level 2
+        brushes.color(86 / 2, 211 / 2, 100 / 2),  # Increased from level 3
+        brushes.color(120 / 2, 255 / 2, 140 / 2), # New brightest level
     ]
 
     def __init__(self):
@@ -332,7 +342,21 @@ class User:
         screen.brush = white
         handle_x = avatar_x + avatar_size + 10  # Position to the right of avatar with 10px margin
         handle_y = 10  # Fixed position for username
-        screen.text("@" + handle, handle_x, handle_y)
+        # Truncate username if it's too long to fit on screen
+        handle_text = "@" + handle
+        max_width = 160 - handle_x - 2  # Leave 2px margin on right
+        text_width, _ = screen.measure_text(handle_text)
+        if text_width > max_width:
+            # Truncate and add ellipsis - measure ellipsis once
+            ellipsis_width, _ = screen.measure_text("...")
+            available_width = max_width - ellipsis_width
+            while len(handle_text) > 2:
+                handle_text = handle_text[:-1]
+                text_width, _ = screen.measure_text(handle_text)
+                if text_width <= available_width:
+                    break
+            handle_text = handle_text + "..."
+        screen.text(handle_text, handle_x, handle_y)
 
         # draw location below username (replacing name)
         screen.font = small_font
@@ -347,9 +371,9 @@ class User:
         size = 5  # Square size
         weeks = 53  # Show full year (53 weeks)
         days_per_week = 7
-        # Position below the avatar/profile section
+        # Position below the avatar/profile section with padding
         x_offset = 5
-        y_offset = 60  # Below avatar, username, location, and commits
+        y_offset = 62  # Increased from 60 to add slight padding above timeline
         
         # Calculate visible area
         visible_width = 160 - x_offset * 2  # Screen width minus margins
@@ -375,22 +399,36 @@ class User:
                     rect.transform = Matrix().translate(*pos)
                     screen.draw(rect)
         
-        # Draw start and end dates
+        # Draw start and end dates as "Month Year - Month Year" centered at bottom
         screen.brush = white
         screen.font = small_font
         if self.start_date and self.end_date:
-            # Format dates from YYYY-MM-DD to MM-DD-YYYY
+            # Format dates from YYYY-MM-DD to "Month Year"
             try:
                 start_parts = self.start_date.split('-')
-                start_formatted = f"{start_parts[1]}-{start_parts[2]}-{start_parts[0]}"
-                end_parts = self.end_date.split('-')
-                end_formatted = f"{end_parts[1]}-{end_parts[2]}-{end_parts[0]}"
+                start_month_idx = int(start_parts[1]) - 1
+                # Validate month index
+                if 0 <= start_month_idx < 12:
+                    start_month = MONTHS[start_month_idx]
+                    start_year = start_parts[0]
+                else:
+                    raise ValueError("Invalid month")
                 
-                # Draw start date on the left
-                screen.text(start_formatted, x_offset, y_offset + days_per_week * (size + 2) + 2)
-                # Draw end date on the right
-                end_date_width, _ = screen.measure_text(end_formatted)
-                screen.text(end_formatted, 160 - x_offset - end_date_width, y_offset + days_per_week * (size + 2) + 2)
+                end_parts = self.end_date.split('-')
+                end_month_idx = int(end_parts[1]) - 1
+                # Validate month index
+                if 0 <= end_month_idx < 12:
+                    end_month = MONTHS[end_month_idx]
+                    end_year = end_parts[0]
+                else:
+                    raise ValueError("Invalid month")
+                
+                # Create centered text "Month Year - Month Year"
+                date_text = f"{start_month} {start_year} - {end_month} {end_year}"
+                text_width, _ = screen.measure_text(date_text)
+                text_x = (160 - text_width) // 2  # Center horizontally
+                text_y = y_offset + days_per_week * (size + 2) + 2
+                screen.text(date_text, text_x, text_y)
             except (IndexError, ValueError):
                 pass
 
@@ -461,12 +499,14 @@ def connection_error():
 def update():
     global connected, force_update, scroll_offset, scroll_direction, last_input_time, auto_scroll_enabled
 
-    screen.brush = brushes.color(20, 20, 20)
+    # Use a dark blue-gray background that complements the contribution colors
+    screen.brush = brushes.color(13, 17, 23)
     screen.draw(shapes.rectangle(0, 0, 160, 120))
 
     force_update = False
 
-    if io.BUTTON_A in io.held and io.BUTTON_C in io.held:
+    # Handle B button for refreshing data
+    if io.BUTTON_B in io.pressed:
         connected = False
         user.update(True)
 
@@ -477,18 +517,17 @@ def update():
     visible_width = 160 - x_offset * 2
     max_scroll = max(0, weeks * (size + 2) - visible_width)
     
-    # Handle manual scrolling with A and C buttons (but not when both are held for refresh)
-    if not (io.BUTTON_A in io.held and io.BUTTON_C in io.held):
-        if io.BUTTON_A in io.pressed or io.BUTTON_C in io.pressed:
-            last_input_time = io.ticks
-            auto_scroll_enabled = False
-            
-            if io.BUTTON_A in io.pressed:
-                # Scroll left
-                scroll_offset = max(0, scroll_offset - 10)
-            elif io.BUTTON_C in io.pressed:
-                # Scroll right
-                scroll_offset = min(max_scroll, scroll_offset + 10)
+    # Handle manual scrolling with A and C buttons
+    if io.BUTTON_A in io.pressed or io.BUTTON_C in io.pressed:
+        last_input_time = io.ticks
+        auto_scroll_enabled = False
+        
+        if io.BUTTON_A in io.pressed:
+            # Scroll left
+            scroll_offset = max(0, scroll_offset - 10)
+        elif io.BUTTON_C in io.pressed:
+            # Scroll right
+            scroll_offset = min(max_scroll, scroll_offset + 10)
     
     # Re-enable auto-scroll after timeout
     if not auto_scroll_enabled and (io.ticks - last_input_time > INPUT_TIMEOUT):
