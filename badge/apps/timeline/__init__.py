@@ -21,6 +21,8 @@ faded = brushes.color(235, 245, 255, 100)
 small_font = PixelFont.load("/system/assets/fonts/ark.ppf")
 large_font = PixelFont.load("/system/assets/fonts/absolute.ppf")
 
+MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 WIFI_TIMEOUT = 60
 CONTRIB_URL = "https://github.com/{user}.contribs"
 USER_AVATAR = "https://wsrv.nl/?url=https://github.com/{user}.png&w=40&output=png"
@@ -337,10 +339,14 @@ class User:
         max_width = 160 - handle_x - 2  # Leave 2px margin on right
         text_width, _ = screen.measure_text(handle_text)
         if text_width > max_width:
-            # Truncate and add ellipsis
-            while len(handle_text) > 2 and text_width > max_width:
+            # Truncate and add ellipsis - measure ellipsis once
+            ellipsis_width, _ = screen.measure_text("...")
+            available_width = max_width - ellipsis_width
+            while len(handle_text) > 2:
                 handle_text = handle_text[:-1]
-                text_width, _ = screen.measure_text(handle_text + "...")
+                text_width, _ = screen.measure_text(handle_text)
+                if text_width <= available_width:
+                    break
             handle_text = handle_text + "..."
         screen.text(handle_text, handle_x, handle_y)
 
@@ -391,16 +397,23 @@ class User:
         if self.start_date and self.end_date:
             # Format dates from YYYY-MM-DD to "Month Year"
             try:
-                months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-                         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-                
                 start_parts = self.start_date.split('-')
-                start_month = months[int(start_parts[1]) - 1]
-                start_year = start_parts[0]
+                start_month_idx = int(start_parts[1]) - 1
+                # Validate month index
+                if 0 <= start_month_idx < 12:
+                    start_month = MONTHS[start_month_idx]
+                    start_year = start_parts[0]
+                else:
+                    raise ValueError("Invalid month")
                 
                 end_parts = self.end_date.split('-')
-                end_month = months[int(end_parts[1]) - 1]
-                end_year = end_parts[0]
+                end_month_idx = int(end_parts[1]) - 1
+                # Validate month index
+                if 0 <= end_month_idx < 12:
+                    end_month = MONTHS[end_month_idx]
+                    end_year = end_parts[0]
+                else:
+                    raise ValueError("Invalid month")
                 
                 # Create centered text "Month Year - Month Year"
                 date_text = f"{start_month} {start_year} - {end_month} {end_year}"
