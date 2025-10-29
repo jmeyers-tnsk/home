@@ -316,9 +316,9 @@ class User:
         avatar_x = 5  # Reduced from 10 to push avatar to the left
         avatar_size = 40  # Smaller avatar size (was 75)
         # Calculate vertical centering: user info spans from username to contributions label
-        # Username starts at y=8, contributions label ends around y=42
+        # Username starts at y=3, contributions label ends around y=37
         # Center the 40px avatar in this space
-        user_info_start = 8
+        user_info_start = 3  # Aligned with username position
         user_info_height = 34  # Approximate height of username + location + contributions (all small font now)
         avatar_y = user_info_start + (user_info_height - avatar_size) // 2
         avatar_center = avatar_size // 2  # Center point for loading animation
@@ -341,7 +341,7 @@ class User:
         screen.font = small_font  # Changed from large_font to reduce username size
         screen.brush = white
         handle_x = avatar_x + avatar_size + 5  # Reduced margin from 10 to 5 to give username more room
-        handle_y = 8  # Reduced from 10 to push content up
+        handle_y = 3  # Moved up 5 pixels to align with top of profile picture
         # Truncate username if it's too long to fit on screen
         handle_text = "@" + handle
         max_width = 160 - handle_x - 2  # Leave 2px margin on right
@@ -373,7 +373,7 @@ class User:
         days_per_week = 7
         # Position below the avatar/profile section with reduced padding
         x_offset = 5
-        y_offset = 50  # Reduced from 62 to push timeline up and make room for dates
+        y_offset = 60  # Moved down 10 pixels from 50
         
         # Calculate visible area
         visible_width = 160 - x_offset * 2  # Screen width minus margins
