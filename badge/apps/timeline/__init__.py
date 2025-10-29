@@ -305,9 +305,10 @@ class User:
         # draw smaller avatar image, aligned with user info
         avatar_x = 5  # Reduced from 10 to push avatar to the left
         avatar_size = 40  # Smaller avatar size (was 75)
-        # Avatar top aligns with username, bottom aligns with contributions label
-        # After alignment, all elements are moved down 5 pixels together
-        avatar_y = 8  # Aligned with username position (3 + 5 pixels down)
+        # Avatar top (y=8) aligns with username, bottom (y=47 = 8+40-1) aligns with 
+        # contributions label bottom (y≈47 = 40 + font_height)
+        # All elements moved down 5 pixels from original positions
+        avatar_y = 8  # Moved from y=3 to y=8 (5 pixels down)
         avatar_center = avatar_size // 2  # Center point for loading animation
         
         if not self.avatar:
@@ -328,7 +329,7 @@ class User:
         screen.font = small_font  # Changed from large_font to reduce username size
         screen.brush = white
         handle_x = avatar_x + avatar_size + 5  # Reduced margin from 10 to 5 to give username more room
-        handle_y = 8  # Aligned with top of profile picture (3 + 5 pixels down)
+        handle_y = 8  # Moved from y=3 to y=8 (5 pixels down) to align with avatar top
         # Truncate username if it's too long to fit on screen
         handle_text = "@" + handle
         max_width = 160 - handle_x - 2  # Leave 2px margin on right
