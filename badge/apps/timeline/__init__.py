@@ -4,6 +4,16 @@ import os
 sys.path.insert(0, "/system/apps/timeline")
 os.chdir("/system/apps/timeline")
 
+"""
+Timeline App - GitHub Contribution Viewer
+
+Controls:
+- A: Scroll left through contributions
+- C: Scroll right through contributions  
+- B: Refresh GitHub data (re-fetch from API)
+
+The app caches GitHub data on first load. Press B to force a refresh.
+"""
 
 from badgeware import io, brushes, shapes, Image, run, PixelFont, screen, Matrix, file_exists
 import random
@@ -252,7 +262,7 @@ class User:
 
     def __init__(self):
         self.handle = None
-        self.update(force_update=True)
+        self.update(force_update=False)  # Use cached data on first load
 
     def update(self, force_update=False):
         self.name = None
@@ -497,7 +507,8 @@ def update():
 
     force_update = False
 
-    if io.BUTTON_A in io.held and io.BUTTON_C in io.held:
+    # Handle B button for refreshing data
+    if io.BUTTON_B in io.pressed:
         connected = False
         user.update(True)
 
@@ -508,18 +519,17 @@ def update():
     visible_width = 160 - x_offset * 2
     max_scroll = max(0, weeks * (size + 2) - visible_width)
     
-    # Handle manual scrolling with A and C buttons (but not when both are held for refresh)
-    if not (io.BUTTON_A in io.held and io.BUTTON_C in io.held):
-        if io.BUTTON_A in io.pressed or io.BUTTON_C in io.pressed:
-            last_input_time = io.ticks
-            auto_scroll_enabled = False
-            
-            if io.BUTTON_A in io.pressed:
-                # Scroll left
-                scroll_offset = max(0, scroll_offset - 10)
-            elif io.BUTTON_C in io.pressed:
-                # Scroll right
-                scroll_offset = min(max_scroll, scroll_offset + 10)
+    # Handle manual scrolling with A and C buttons
+    if io.BUTTON_A in io.pressed or io.BUTTON_C in io.pressed:
+        last_input_time = io.ticks
+        auto_scroll_enabled = False
+        
+        if io.BUTTON_A in io.pressed:
+            # Scroll left
+            scroll_offset = max(0, scroll_offset - 10)
+        elif io.BUTTON_C in io.pressed:
+            # Scroll right
+            scroll_offset = min(max_scroll, scroll_offset + 10)
     
     # Re-enable auto-scroll after timeout
     if not auto_scroll_enabled and (io.ticks - last_input_time > INPUT_TIMEOUT):
