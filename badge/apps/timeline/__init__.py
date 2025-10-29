@@ -11,8 +11,6 @@ Controls:
 - A: Scroll left through contributions
 - C: Scroll right through contributions  
 - B: Refresh GitHub data (re-fetch from API)
-
-The app caches GitHub data on first load. Press B to force a refresh.
 """
 
 from badgeware import io, brushes, shapes, Image, run, PixelFont, screen, Matrix, file_exists
@@ -262,7 +260,7 @@ class User:
 
     def __init__(self):
         self.handle = None
-        self.update(force_update=False)  # Use cached data on first load
+        self.update(force_update=True)
 
     def update(self, force_update=False):
         self.name = None
