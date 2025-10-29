@@ -477,17 +477,18 @@ def update():
     visible_width = 160 - x_offset * 2
     max_scroll = max(0, weeks * (size + 2) - visible_width)
     
-    # Handle manual scrolling with A and C buttons
-    if io.BUTTON_A in io.pressed or io.BUTTON_C in io.pressed:
-        last_input_time = io.ticks
-        auto_scroll_enabled = False
-        
-        if io.BUTTON_A in io.pressed:
-            # Scroll left
-            scroll_offset = max(0, scroll_offset - 10)
-        elif io.BUTTON_C in io.pressed:
-            # Scroll right
-            scroll_offset = min(max_scroll, scroll_offset + 10)
+    # Handle manual scrolling with A and C buttons (but not when both are held for refresh)
+    if not (io.BUTTON_A in io.held and io.BUTTON_C in io.held):
+        if io.BUTTON_A in io.pressed or io.BUTTON_C in io.pressed:
+            last_input_time = io.ticks
+            auto_scroll_enabled = False
+            
+            if io.BUTTON_A in io.pressed:
+                # Scroll left
+                scroll_offset = max(0, scroll_offset - 10)
+            elif io.BUTTON_C in io.pressed:
+                # Scroll right
+                scroll_offset = min(max_scroll, scroll_offset + 10)
     
     # Re-enable auto-scroll after timeout
     if not auto_scroll_enabled and (io.ticks - last_input_time > INPUT_TIMEOUT):
