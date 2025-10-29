@@ -230,7 +230,7 @@ class User:
 
     def __init__(self):
         self.handle = None
-        self.update()
+        self.update(force_update=True)
 
     def update(self, force_update=False):
         self.name = None
@@ -350,7 +350,7 @@ class User:
 
 
 user = User()
-connected = file_exists("/contrib_data.json") and file_exists("/user_data.json") and file_exists("/avatar.png")
+connected = False
 force_update = False
 
 
