@@ -302,15 +302,13 @@ class User:
         if not connected:
             handle = "connecting..."
 
-        # draw smaller avatar image, vertically centered with user info
+        # draw smaller avatar image, aligned with user info
         avatar_x = 5  # Reduced from 10 to push avatar to the left
         avatar_size = 40  # Smaller avatar size (was 75)
-        # Calculate vertical centering: user info spans from username to contributions label
-        # Username starts at y=3, contributions label ends around y=37
-        # Center the 40px avatar in this space
-        user_info_start = 3  # Aligned with username position
-        user_info_height = 34  # Approximate height of username + location + contributions (all small font now)
-        avatar_y = user_info_start + (user_info_height - avatar_size) // 2
+        # Avatar top (y=8) aligns with username, bottom (y=47 = 8+40-1) aligns with 
+        # contributions label bottom (y≈47 = 40 + font_height)
+        # All elements moved down 5 pixels from original positions
+        avatar_y = 8  # Moved from y=3 to y=8 (5 pixels down)
         avatar_center = avatar_size // 2  # Center point for loading animation
         
         if not self.avatar:
@@ -331,7 +329,7 @@ class User:
         screen.font = small_font  # Changed from large_font to reduce username size
         screen.brush = white
         handle_x = avatar_x + avatar_size + 5  # Reduced margin from 10 to 5 to give username more room
-        handle_y = 3  # Moved up 5 pixels to align with top of profile picture
+        handle_y = 8  # Moved from y=3 to y=8 (5 pixels down) to align with avatar top
         # Truncate username if it's too long to fit on screen
         handle_text = "@" + handle
         max_width = 160 - handle_x - 2  # Leave 2px margin on right
@@ -417,7 +415,7 @@ class User:
                 date_text = f"{start_month} {start_year} - {end_month} {end_year}"
                 text_width, _ = screen.measure_text(date_text)
                 text_x = (160 - text_width) // 2  # Center horizontally
-                text_y = y_offset + days_per_week * (size + 2) + 2
+                text_y = y_offset + days_per_week * (size + 2)  # Moved up 2 pixels
                 screen.text(date_text, text_x, text_y)
             except (IndexError, ValueError):
                 pass
