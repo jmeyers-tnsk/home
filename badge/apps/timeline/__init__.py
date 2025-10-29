@@ -251,11 +251,11 @@ def placeholder_if_none(text):
 
 class User:
     levels = [
-        brushes.color(21 / 2,  27 / 2,  35 / 2),
-        brushes.color(25 / 2, 108 / 2,  46 / 2),  # Increased from level 1 (was 3/2, 58/2, 22/2)
-        brushes.color(46 / 2, 160 / 2,  67 / 2),  # Increased from level 2
-        brushes.color(86 / 2, 211 / 2, 100 / 2),  # Increased from level 3
-        brushes.color(120 / 2, 255 / 2, 140 / 2), # New brightest level
+        brushes.color(21,  27,  35),      # Level 0 - dark background (slightly brighter)
+        brushes.color(40, 140,  70),      # Level 1 - brighter green (was 25/2, 108/2, 46/2)
+        brushes.color(70, 200, 100),      # Level 2 - bright green (was 46/2, 160/2, 67/2)
+        brushes.color(110, 240, 130),     # Level 3 - very bright green (was 86/2, 211/2, 100/2)
+        brushes.color(150, 255, 170),     # Level 4 - maximum brightness green (was 120/2, 255/2, 140/2)
     ]
 
     def __init__(self):
