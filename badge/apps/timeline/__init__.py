@@ -298,9 +298,6 @@ class User:
                 ).rotate((io.ticks + i * mul) / 40).scale(1 + i / 1.3)
                 screen.draw(squircle)
         else:
-            # Scale down the 75x75 avatar to 40x40
-            # For now, we'll just blit it at reduced size - the library should handle scaling
-            # If the badgeware library doesn't auto-scale, we may need to use a different avatar URL size
             screen.blit(self.avatar, avatar_x, avatar_y)
 
         # draw handle to the right of the avatar, prefixed with "@", aligned with photo
@@ -313,7 +310,7 @@ class User:
         # draw location below username (replacing name)
         screen.font = small_font
         screen.brush = phosphor
-        location = placeholder_if_none(self.location) if self.location else "Unknown"
+        location = placeholder_if_none(self.location) or "Unknown"
         screen.text(location, handle_x, handle_y + 14)
 
         # draw commits statistic below location
