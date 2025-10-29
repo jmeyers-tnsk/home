@@ -275,11 +275,11 @@ class User:
 
     def draw_stat(self, title, value, x, y):
         screen.brush = white if value else faded
-        screen.font = large_font
+        screen.font = small_font  # Changed from large_font for consistency
         screen.text(str(value) if value is not None else str(fake_number()), x, y)
         screen.font = small_font
         screen.brush = phosphor
-        screen.text(title, x - 1, y + 13)
+        screen.text(title, x - 1, y + 10)  # Reduced from y + 13 since value is now smaller
 
     def draw(self, connected, scroll_offset):
         # draw handle
@@ -315,11 +315,11 @@ class User:
         # draw smaller avatar image, vertically centered with user info
         avatar_x = 5  # Reduced from 10 to push avatar to the left
         avatar_size = 40  # Smaller avatar size (was 75)
-        # Calculate vertical centering: user info spans from username to commits label
-        # Username starts at y=8, commits label ends around y=47
+        # Calculate vertical centering: user info spans from username to contributions label
+        # Username starts at y=8, contributions label ends around y=42
         # Center the 40px avatar in this space
         user_info_start = 8
-        user_info_height = 39  # Approximate height of username + location + commits (reduced from 46)
+        user_info_height = 34  # Approximate height of username + location + contributions (all small font now)
         avatar_y = user_info_start + (user_info_height - avatar_size) // 2
         avatar_center = avatar_size // 2  # Center point for loading animation
         
@@ -364,8 +364,8 @@ class User:
         location = placeholder_if_none(self.location) or "Unknown"
         screen.text(location, handle_x, handle_y + 10)  # Reduced gap from 14 to 10
 
-        # draw commits statistic below location
-        self.draw_stat("commits", self.contribs, handle_x, handle_y + 22)  # Reduced gap from 28 to 22
+        # draw contributions statistic below location
+        self.draw_stat("contributions", self.contribs, handle_x, handle_y + 22)  # Changed from "commits" to "contributions"
 
         # draw contribution graph below the profile section - horizontal scrolling layout
         size = 5  # Square size
