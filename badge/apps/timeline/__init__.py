@@ -181,17 +181,37 @@ def get_contrib_data(user, force_update=False):
     yield from async_fetch_to_disk(CONTRIB_URL.format(user=user.handle), "/contrib_data.json", force_update)
     r = json.loads(open("/contrib_data.json", "r").read())
     user.contribs = r["total_contributions"]
-    # Store last 3 months (12 weeks)
-    user.contribution_data = [[0 for _ in range(12)] for _ in range(7)]
-    # Get the last 12 weeks of data
+    # Store full year (53 weeks)
+    user.contribution_data = [[0 for _ in range(53)] for _ in range(7)]
     weeks = r["weeks"]
-    start_week = max(0, len(weeks) - 12)  # Start from 12 weeks ago
-    for w_idx, week in enumerate(weeks[start_week:]):
+    # Get the full year of data (up to 53 weeks)
+    for w_idx, week in enumerate(weeks):
+        if w_idx >= 53:
+            break
         for day in range(7):
             try:
                 user.contribution_data[day][w_idx] = week["contribution_days"][day]["level"]
             except (IndexError, KeyError):
                 pass
+    
+    # Extract start and end dates
+    try:
+        # First day of first week
+        user.start_date = weeks[0]["contribution_days"][0]["date"]
+        # Last day of last week (or current week)
+        last_week = weeks[-1]
+        # Find the last valid day in the last week
+        user.end_date = None
+        for day in range(6, -1, -1):
+            if day < len(last_week["contribution_days"]):
+                user.end_date = last_week["contribution_days"][day]["date"]
+                break
+        if user.end_date is None:
+            user.end_date = last_week["contribution_days"][0]["date"]
+    except (IndexError, KeyError):
+        user.start_date = None
+        user.end_date = None
+    
     del r
     gc.collect()
 
@@ -238,6 +258,8 @@ class User:
         self.contribution_data = None
         self.avatar = None
         self.location = None
+        self.start_date = None
+        self.end_date = None
         self._task = None
         self._force_update = force_update
 
@@ -249,7 +271,7 @@ class User:
         screen.brush = phosphor
         screen.text(title, x - 1, y + 13)
 
-    def draw(self, connected):
+    def draw(self, connected, scroll_offset):
         # draw handle
         screen.font = large_font
         handle = self.handle
@@ -321,37 +343,69 @@ class User:
         # draw commits statistic below location
         self.draw_stat("commits", self.contribs, handle_x, handle_y + 28)
 
-        # draw contribution graph below the profile section - vertical layout
-        size = 5  # Smaller size to fit more weeks
-        weeks = 12  # Show 12 weeks (3 months)
+        # draw contribution graph below the profile section - horizontal scrolling layout
+        size = 5  # Square size
+        weeks = 53  # Show full year (53 weeks)
         days_per_week = 7
-        # Calculate heatmap dimensions (weeks as columns, days as rows for vertical layout)
-        graph_width = weeks * (size + 2)
-        graph_height = days_per_week * (size + 2)
         # Position below the avatar/profile section
         x_offset = 5
-        y_offset = 55  # Below avatar, username, location, and commits
+        y_offset = 60  # Below avatar, username, location, and commits
+        
+        # Calculate visible area
+        visible_width = 160 - x_offset * 2  # Screen width minus margins
+        max_scroll = max(0, weeks * (size + 2) - visible_width)
         
         screen.font = small_font
         rect = shapes.rounded_rectangle(0, 0, size, size, 2)
         for week in range(weeks):
-            for day in range(days_per_week):
-                if (self.contribution_data and 
-                    day < len(self.contribution_data) and 
-                    week < len(self.contribution_data[0])):
-                    level = self.contribution_data[day][week]
-                    screen.brush = User.levels[level]
-                else:
-                    screen.brush = User.levels[0]
-                # Vertical layout: weeks are columns (x), days are rows (y)
-                pos = (x_offset + week * (size + 2), y_offset + day * (size + 2))
-                rect.transform = Matrix().translate(*pos)
-                screen.draw(rect)
+            # Calculate x position considering scroll offset
+            week_x = x_offset + week * (size + 2) - scroll_offset
+            # Only draw if visible on screen
+            if week_x + size >= 0 and week_x < 160:
+                for day in range(days_per_week):
+                    if (self.contribution_data and 
+                        day < len(self.contribution_data) and 
+                        week < len(self.contribution_data[0])):
+                        level = self.contribution_data[day][week]
+                        screen.brush = User.levels[level]
+                    else:
+                        screen.brush = User.levels[0]
+                    # Horizontal layout: weeks are columns (x), days are rows (y)
+                    pos = (week_x, y_offset + day * (size + 2))
+                    rect.transform = Matrix().translate(*pos)
+                    screen.draw(rect)
+        
+        # Draw start and end dates
+        screen.brush = white
+        screen.font = small_font
+        if self.start_date and self.end_date:
+            # Format dates from YYYY-MM-DD to MM-DD-YYYY
+            try:
+                start_parts = self.start_date.split('-')
+                start_formatted = f"{start_parts[1]}-{start_parts[2]}-{start_parts[0]}"
+                end_parts = self.end_date.split('-')
+                end_formatted = f"{end_parts[1]}-{end_parts[2]}-{end_parts[0]}"
+                
+                # Draw start date on the left
+                screen.text(start_formatted, x_offset, y_offset + days_per_week * (size + 2) + 2)
+                # Draw end date on the right
+                end_date_width, _ = screen.measure_text(end_formatted)
+                screen.text(end_formatted, 160 - x_offset - end_date_width, y_offset + days_per_week * (size + 2) + 2)
+            except (IndexError, ValueError):
+                pass
 
 
 user = User()
 connected = False
 force_update = False
+
+# Scrolling state
+scroll_offset = 0
+scroll_speed = 0.5  # pixels per frame
+scroll_direction = 1  # 1 for right, -1 for left
+last_input_time = 0
+auto_scroll_enabled = True
+INPUT_TIMEOUT = 10000  # 10 seconds in milliseconds
 
 
 def center_text(text, y):
@@ -405,9 +459,9 @@ def connection_error():
 
 
 def update():
-    global connected, force_update
+    global connected, force_update, scroll_offset, scroll_direction, last_input_time, auto_scroll_enabled
 
-    screen.brush = brushes.color(138, 190, 255)
+    screen.brush = brushes.color(20, 20, 20)
     screen.draw(shapes.rectangle(0, 0, 160, 120))
 
     force_update = False
@@ -416,9 +470,45 @@ def update():
         connected = False
         user.update(True)
 
+    # Calculate max scroll based on contribution data
+    size = 5
+    weeks = 53
+    x_offset = 5
+    visible_width = 160 - x_offset * 2
+    max_scroll = max(0, weeks * (size + 2) - visible_width)
+    
+    # Handle manual scrolling with A and C buttons (but not when both are held for refresh)
+    if not (io.BUTTON_A in io.held and io.BUTTON_C in io.held):
+        if io.BUTTON_A in io.pressed or io.BUTTON_C in io.pressed:
+            last_input_time = io.ticks
+            auto_scroll_enabled = False
+            
+            if io.BUTTON_A in io.pressed:
+                # Scroll left
+                scroll_offset = max(0, scroll_offset - 10)
+            elif io.BUTTON_C in io.pressed:
+                # Scroll right
+                scroll_offset = min(max_scroll, scroll_offset + 10)
+    
+    # Re-enable auto-scroll after timeout
+    if not auto_scroll_enabled and (io.ticks - last_input_time > INPUT_TIMEOUT):
+        auto_scroll_enabled = True
+    
+    # Auto-scroll logic
+    if auto_scroll_enabled:
+        scroll_offset += scroll_speed * scroll_direction
+        
+        # Bounce at edges
+        if scroll_offset >= max_scroll:
+            scroll_offset = max_scroll
+            scroll_direction = -1  # Reverse to left
+        elif scroll_offset <= 0:
+            scroll_offset = 0
+            scroll_direction = 1  # Reverse to right
+
     if get_connection_details(user):
         if wlan_start():
-            user.draw(connected)
+            user.draw(connected, scroll_offset)
         else:  # Connection Failed
             connection_error()
     else:      # Get Details Failed
