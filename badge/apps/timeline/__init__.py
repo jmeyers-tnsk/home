@@ -313,13 +313,13 @@ class User:
             handle = "connecting..."
 
         # draw smaller avatar image, vertically centered with user info
-        avatar_x = 10
+        avatar_x = 5  # Reduced from 10 to push avatar to the left
         avatar_size = 40  # Smaller avatar size (was 75)
         # Calculate vertical centering: user info spans from username to commits label
-        # Username starts at y=10, commits label ends around y=56
+        # Username starts at y=8, commits label ends around y=47
         # Center the 40px avatar in this space
-        user_info_start = 10
-        user_info_height = 46  # Approximate height of username + location + commits
+        user_info_start = 8
+        user_info_height = 39  # Approximate height of username + location + commits (reduced from 46)
         avatar_y = user_info_start + (user_info_height - avatar_size) // 2
         avatar_center = avatar_size // 2  # Center point for loading animation
         
@@ -338,10 +338,10 @@ class User:
             screen.blit(self.avatar, avatar_x, avatar_y)
 
         # draw handle to the right of the avatar, prefixed with "@"
-        screen.font = large_font
+        screen.font = small_font  # Changed from large_font to reduce username size
         screen.brush = white
-        handle_x = avatar_x + avatar_size + 10  # Position to the right of avatar with 10px margin
-        handle_y = 10  # Fixed position for username
+        handle_x = avatar_x + avatar_size + 5  # Reduced margin from 10 to 5 to give username more room
+        handle_y = 8  # Reduced from 10 to push content up
         # Truncate username if it's too long to fit on screen
         handle_text = "@" + handle
         max_width = 160 - handle_x - 2  # Leave 2px margin on right
@@ -362,18 +362,18 @@ class User:
         screen.font = small_font
         screen.brush = phosphor
         location = placeholder_if_none(self.location) or "Unknown"
-        screen.text(location, handle_x, handle_y + 14)
+        screen.text(location, handle_x, handle_y + 10)  # Reduced gap from 14 to 10
 
         # draw commits statistic below location
-        self.draw_stat("commits", self.contribs, handle_x, handle_y + 28)
+        self.draw_stat("commits", self.contribs, handle_x, handle_y + 22)  # Reduced gap from 28 to 22
 
         # draw contribution graph below the profile section - horizontal scrolling layout
         size = 5  # Square size
         weeks = 53  # Show full year (53 weeks)
         days_per_week = 7
-        # Position below the avatar/profile section with padding
+        # Position below the avatar/profile section with reduced padding
         x_offset = 5
-        y_offset = 62  # Increased from 60 to add slight padding above timeline
+        y_offset = 50  # Reduced from 62 to push timeline up and make room for dates
         
         # Calculate visible area
         visible_width = 160 - x_offset * 2  # Screen width minus margins
