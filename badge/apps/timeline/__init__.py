@@ -251,11 +251,11 @@ def placeholder_if_none(text):
 
 class User:
     levels = [
-        brushes.color(21 / 2,  27 / 2,  35 / 2),
-        brushes.color(25 / 2, 108 / 2,  46 / 2),  # Increased from level 1 (was 3/2, 58/2, 22/2)
-        brushes.color(46 / 2, 160 / 2,  67 / 2),  # Increased from level 2
-        brushes.color(86 / 2, 211 / 2, 100 / 2),  # Increased from level 3
-        brushes.color(120 / 2, 255 / 2, 140 / 2), # New brightest level
+        brushes.color(21,  27,  35),      # Level 0 - dark background (slightly brighter)
+        brushes.color(40, 140,  70),      # Level 1 - brighter green (was 25/2, 108/2, 46/2)
+        brushes.color(70, 200, 100),      # Level 2 - bright green (was 46/2, 160/2, 67/2)
+        brushes.color(110, 240, 130),     # Level 3 - very bright green (was 86/2, 211/2, 100/2)
+        brushes.color(150, 255, 170),     # Level 4 - maximum brightness green (was 120/2, 255/2, 140/2)
     ]
 
     def __init__(self):
@@ -275,11 +275,11 @@ class User:
 
     def draw_stat(self, title, value, x, y):
         screen.brush = white if value else faded
-        screen.font = large_font
+        screen.font = small_font  # Changed from large_font for consistency
         screen.text(str(value) if value is not None else str(fake_number()), x, y)
         screen.font = small_font
         screen.brush = phosphor
-        screen.text(title, x - 1, y + 13)
+        screen.text(title, x - 1, y + 10)  # Reduced from y + 13 since value is now smaller
 
     def draw(self, connected, scroll_offset):
         # draw handle
@@ -313,13 +313,13 @@ class User:
             handle = "connecting..."
 
         # draw smaller avatar image, vertically centered with user info
-        avatar_x = 10
+        avatar_x = 5  # Reduced from 10 to push avatar to the left
         avatar_size = 40  # Smaller avatar size (was 75)
-        # Calculate vertical centering: user info spans from username to commits label
-        # Username starts at y=10, commits label ends around y=56
+        # Calculate vertical centering: user info spans from username to contributions label
+        # Username starts at y=8, contributions label ends around y=42
         # Center the 40px avatar in this space
-        user_info_start = 10
-        user_info_height = 46  # Approximate height of username + location + commits
+        user_info_start = 8
+        user_info_height = 34  # Approximate height of username + location + contributions (all small font now)
         avatar_y = user_info_start + (user_info_height - avatar_size) // 2
         avatar_center = avatar_size // 2  # Center point for loading animation
         
@@ -338,10 +338,10 @@ class User:
             screen.blit(self.avatar, avatar_x, avatar_y)
 
         # draw handle to the right of the avatar, prefixed with "@"
-        screen.font = large_font
+        screen.font = small_font  # Changed from large_font to reduce username size
         screen.brush = white
-        handle_x = avatar_x + avatar_size + 10  # Position to the right of avatar with 10px margin
-        handle_y = 10  # Fixed position for username
+        handle_x = avatar_x + avatar_size + 5  # Reduced margin from 10 to 5 to give username more room
+        handle_y = 8  # Reduced from 10 to push content up
         # Truncate username if it's too long to fit on screen
         handle_text = "@" + handle
         max_width = 160 - handle_x - 2  # Leave 2px margin on right
@@ -362,18 +362,18 @@ class User:
         screen.font = small_font
         screen.brush = phosphor
         location = placeholder_if_none(self.location) or "Unknown"
-        screen.text(location, handle_x, handle_y + 14)
+        screen.text(location, handle_x, handle_y + 10)  # Reduced gap from 14 to 10
 
-        # draw commits statistic below location
-        self.draw_stat("commits", self.contribs, handle_x, handle_y + 28)
+        # draw contributions statistic below location
+        self.draw_stat("contributions", self.contribs, handle_x, handle_y + 22)  # Changed from "commits" to "contributions"
 
         # draw contribution graph below the profile section - horizontal scrolling layout
         size = 5  # Square size
         weeks = 53  # Show full year (53 weeks)
         days_per_week = 7
-        # Position below the avatar/profile section with padding
+        # Position below the avatar/profile section with reduced padding
         x_offset = 5
-        y_offset = 62  # Increased from 60 to add slight padding above timeline
+        y_offset = 50  # Reduced from 62 to push timeline up and make room for dates
         
         # Calculate visible area
         visible_width = 160 - x_offset * 2  # Screen width minus margins
