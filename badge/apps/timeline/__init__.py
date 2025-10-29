@@ -23,7 +23,7 @@ large_font = PixelFont.load("/system/assets/fonts/absolute.ppf")
 
 WIFI_TIMEOUT = 60
 CONTRIB_URL = "https://github.com/{user}.contribs"
-USER_AVATAR = "https://wsrv.nl/?url=https://github.com/{user}.png&w=75&output=png"
+USER_AVATAR = "https://wsrv.nl/?url=https://github.com/{user}.png&w=40&output=png"
 DETAILS_URL = "https://api.github.com/users/{user}"
 
 WIFI_PASSWORD = None
@@ -171,6 +171,7 @@ def get_user_data(user, force_update=False):
     user.handle = r["login"]
     user.followers = r["followers"]
     user.repos = r["public_repos"]
+    user.location = r.get("location", "")
     del r
     gc.collect()
 
@@ -180,11 +181,11 @@ def get_contrib_data(user, force_update=False):
     yield from async_fetch_to_disk(CONTRIB_URL.format(user=user.handle), "/contrib_data.json", force_update)
     r = json.loads(open("/contrib_data.json", "r").read())
     user.contribs = r["total_contributions"]
-    # Only store last 2 weeks (14 days)
-    user.contribution_data = [[0 for _ in range(14)] for _ in range(7)]
-    # Get the last 2 weeks of data
+    # Store last 3 months (12 weeks)
+    user.contribution_data = [[0 for _ in range(12)] for _ in range(7)]
+    # Get the last 12 weeks of data
     weeks = r["weeks"]
-    start_week = max(0, len(weeks) - 2)  # Start from 2 weeks ago
+    start_week = max(0, len(weeks) - 12)  # Start from 12 weeks ago
     for w_idx, week in enumerate(weeks[start_week:]):
         for day in range(7):
             try:
@@ -236,6 +237,7 @@ class User:
         self.contribs = None
         self.contribution_data = None
         self.avatar = None
+        self.location = None
         self._task = None
         self._force_update = force_update
 
@@ -248,33 +250,6 @@ class User:
         screen.text(title, x - 1, y + 13)
 
     def draw(self, connected):
-        # draw contribution graph at the bottom - horizontal layout
-        size = 8  # Smaller size to fit days horizontally
-        weeks = 2  # Show 2 weeks
-        days_per_week = 7
-        # Calculate heatmap dimensions (days as columns, weeks as rows)
-        graph_width = days_per_week * (size + 2)
-        graph_height = weeks * (size + 2)
-        # Center the heatmap horizontally
-        x_offset = (160 - graph_width) // 2
-        # Position at bottom of screen
-        y_offset = 120 - graph_height - 2
-
-        screen.font = small_font
-        rect = shapes.rounded_rectangle(0, 0, size, size, 2)
-        for week in range(weeks):
-            for day in range(days_per_week):
-                if (self.contribution_data and 
-                    day < len(self.contribution_data) and 
-                    week < len(self.contribution_data[0])):
-                    level = self.contribution_data[day][week]
-                    screen.brush = User.levels[level]
-                else:
-                    screen.brush = User.levels[0]
-                pos = (x_offset + day * (size + 2), y_offset + week * (size + 2))
-                rect.transform = Matrix().translate(*pos)
-                screen.draw(rect)
-
         # draw handle
         screen.font = large_font
         handle = self.handle
@@ -305,10 +280,15 @@ class User:
         if not connected:
             handle = "connecting..."
 
-        # draw avatar image at the top left
-        avatar_x = 5
-        avatar_y = 5
-        avatar_size = 75  # Avatar image is 75x75 pixels
+        # draw smaller avatar image, vertically centered with user info
+        avatar_x = 10
+        avatar_size = 40  # Smaller avatar size (was 75)
+        # Calculate vertical centering: user info spans from username to commits label
+        # Username starts at y=10, commits label ends around y=56
+        # Center the 40px avatar in this space
+        user_info_start = 10
+        user_info_height = 46  # Approximate height of username + location + commits
+        avatar_y = user_info_start + (user_info_height - avatar_size) // 2
         avatar_center = avatar_size // 2  # Center point for loading animation
         
         if not self.avatar:
@@ -325,21 +305,48 @@ class User:
         else:
             screen.blit(self.avatar, avatar_x, avatar_y)
 
-        # draw handle to the right of the avatar
+        # draw handle to the right of the avatar, prefixed with "@"
         screen.font = large_font
         screen.brush = white
-        handle_x = avatar_x + avatar_size + 5  # Position to the right of avatar with 5px margin
-        handle_y = 10
-        screen.text(handle, handle_x, handle_y)
+        handle_x = avatar_x + avatar_size + 10  # Position to the right of avatar with 10px margin
+        handle_y = 10  # Fixed position for username
+        screen.text("@" + handle, handle_x, handle_y)
 
-        # draw name below handle
+        # draw location below username (replacing name)
         screen.font = small_font
         screen.brush = phosphor
-        name = placeholder_if_none(self.name)
-        screen.text(name, handle_x, handle_y + 14)
+        location = placeholder_if_none(self.location) or "Unknown"
+        screen.text(location, handle_x, handle_y + 14)
 
-        # draw commits statistic below the avatar area
-        self.draw_stat("commits", self.contribs, 80 - 15, 50)
+        # draw commits statistic below location
+        self.draw_stat("commits", self.contribs, handle_x, handle_y + 28)
+
+        # draw contribution graph below the profile section - vertical layout
+        size = 5  # Smaller size to fit more weeks
+        weeks = 12  # Show 12 weeks (3 months)
+        days_per_week = 7
+        # Calculate heatmap dimensions (weeks as columns, days as rows for vertical layout)
+        graph_width = weeks * (size + 2)
+        graph_height = days_per_week * (size + 2)
+        # Position below the avatar/profile section
+        x_offset = 5
+        y_offset = 55  # Below avatar, username, location, and commits
+        
+        screen.font = small_font
+        rect = shapes.rounded_rectangle(0, 0, size, size, 2)
+        for week in range(weeks):
+            for day in range(days_per_week):
+                if (self.contribution_data and 
+                    day < len(self.contribution_data) and 
+                    week < len(self.contribution_data[0])):
+                    level = self.contribution_data[day][week]
+                    screen.brush = User.levels[level]
+                else:
+                    screen.brush = User.levels[0]
+                # Vertical layout: weeks are columns (x), days are rows (y)
+                pos = (x_offset + week * (size + 2), y_offset + day * (size + 2))
+                rect.transform = Matrix().translate(*pos)
+                screen.draw(rect)
 
 
 user = User()
@@ -400,7 +407,7 @@ def connection_error():
 def update():
     global connected, force_update
 
-    screen.brush = brushes.color(0, 0, 0)
+    screen.brush = brushes.color(138, 190, 255)
     screen.draw(shapes.rectangle(0, 0, 160, 120))
 
     force_update = False
