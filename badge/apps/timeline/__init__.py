@@ -280,10 +280,15 @@ class User:
         if not connected:
             handle = "connecting..."
 
-        # draw smaller avatar image at the top left
-        avatar_x = 5
-        avatar_y = 5
+        # draw smaller avatar image, vertically centered with user info
+        avatar_x = 10
         avatar_size = 40  # Smaller avatar size (was 75)
+        # Calculate vertical centering: user info spans from username to commits label
+        # Username starts at y=10, commits label ends around y=56
+        # Center the 40px avatar in this space
+        user_info_start = 10
+        user_info_height = 46  # Approximate height of username + location + commits
+        avatar_y = user_info_start + (user_info_height - avatar_size) // 2
         avatar_center = avatar_size // 2  # Center point for loading animation
         
         if not self.avatar:
@@ -300,11 +305,11 @@ class User:
         else:
             screen.blit(self.avatar, avatar_x, avatar_y)
 
-        # draw handle to the right of the avatar, prefixed with "@", aligned with photo
+        # draw handle to the right of the avatar, prefixed with "@"
         screen.font = large_font
         screen.brush = white
-        handle_x = avatar_x + avatar_size + 5  # Position to the right of avatar with 5px margin
-        handle_y = avatar_y  # Align with the top of the avatar
+        handle_x = avatar_x + avatar_size + 10  # Position to the right of avatar with 10px margin
+        handle_y = 10  # Fixed position for username
         screen.text("@" + handle, handle_x, handle_y)
 
         # draw location below username (replacing name)
